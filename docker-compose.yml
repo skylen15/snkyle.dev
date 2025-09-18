@@ -47,7 +47,6 @@ services:
                 limits:
                     memory: 8g
                     cpus: "4"
-                reservations:
 
     open-webui:
         image: ghcr.io/open-webui/open-webui:main
