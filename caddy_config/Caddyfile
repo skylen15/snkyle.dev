@@ -1,5 +1,23 @@
-n8n.<domain>.<suffix> {
+n8n.snkyle.dev {
     reverse_proxy n8n:5678 {
       flush_interval -1
     }
+}
+
+
+chat-ai.snkyle.dev {
+    reverse_proxy open-webui:8080
+}
+
+
+
+ollama.snkyle.dev {
+    reverse_proxy ollama:11434 {
+        flush_interval -1
+    }
+}
+
+
+crawl.snkyle.dev {
+    reverse_proxy crawl4ai:11235
 }

@@ -1,35 +1,80 @@
-version: "3.7"
-
 services:
-  caddy:
-    image: caddy:latest
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - caddy_data:/data
-      - ${DATA_FOLDER}/caddy_config:/config
-      - ${DATA_FOLDER}/caddy_config/Caddyfile:/etc/caddy/Caddyfile
+    caddy:
+        image: caddy:latest
+        container_name: caddy
+        restart: unless-stopped
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - caddy_data:/data
+            - ${DATA_FOLDER}/caddy_config:/config
+            - ${DATA_FOLDER}/caddy_config/Caddyfile:/etc/caddy/Caddyfile
 
-  n8n:
-    image: docker.n8n.io/n8nio/n8n
-    restart: always
-    ports:
-      - 5678:5678
-    environment:
-      - N8N_HOST=${SUBDOMAIN}.${DOMAIN_NAME}
-      - N8N_PORT=5678
-      - N8N_PROTOCOL=https
-      - NODE_ENV=production
-      - WEBHOOK_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}/
-      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
-    volumes:
-      - n8n_data:/home/node/.n8n
-      - ${DATA_FOLDER}/local_files:/files
-      
+    n8n:
+        image: docker.n8n.io/n8nio/n8n
+        container_name: n8n
+        restart: always
+        ports:
+            - 5678:5678
+        environment:
+            - N8N_HOST=${SUBDOMAIN}.${DOMAIN_NAME}
+            - N8N_PORT=5678
+            - N8N_PROTOCOL=https
+            - NODE_ENV=production
+            - WEBHOOK_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}/
+            - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
+        volumes:
+            - n8n_data:/home/node/.n8n
+            - ${DATA_FOLDER}/local_files:/files
+
+    ollama:build:
+        image: ollama/ollama:latest
+        container_name: ollama
+        restart: unless-stopped
+        tty: true
+        read_only: true
+        security_opt:
+            - no-new-privileges:true
+        cap_drop:
+            - ALL
+        cap_add:
+            - ALL
+        volumes:
+            - ollama:/root/.ollama
+        deploy:
+            resources:
+                limits:
+                    memory: 8g
+                    cpus: "4"
+                reservations:
+
+    open-webui:
+        image: ghcr.io/open-webui/open-webui:main
+        container_name: open-webui
+        restart: unless-stopped
+        depends_on:
+            - ollama
+        environment:
+            - OLLAMA_BASE_URL=http://ollama:11434
+            - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
+        volumes:
+            - open-webui:/app/backend/data
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+
+    crawl4ai:
+        image: unclecode/crawl4ai:latest
+        container_name: crawl4ai
+        restart: unless-stopped
+        shm-size: "1g"
+        ports:
+            - "11235:11235"
+
 volumes:
-  caddy_data:
-    external: true
-  n8n_data:
-    external: true
+    caddy_data:
+        external: true
+    n8n_data:
+        external: true
+    ollama:
+    open-webui:
