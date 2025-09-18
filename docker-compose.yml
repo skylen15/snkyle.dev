@@ -28,7 +28,7 @@ services:
             - n8n_data:/home/node/.n8n
             - ${DATA_FOLDER}/local_files:/files
 
-    ollama:build:
+    ollama:
         image: ollama/ollama:latest
         container_name: ollama
         restart: unless-stopped
