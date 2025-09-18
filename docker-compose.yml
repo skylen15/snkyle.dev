@@ -47,7 +47,7 @@ services:
                 limits:
                     memory: 8g
                     cpus: "4"
-
+        gpus: all
     open-webui:
         image: ghcr.io/open-webui/open-webui:main
         container_name: open-webui
