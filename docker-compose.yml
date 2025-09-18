@@ -67,7 +67,7 @@ services:
         image: unclecode/crawl4ai:latest
         container_name: crawl4ai
         restart: unless-stopped
-        shm-size: "1g"
+        shm_size: "1g"
         ports:
             - "11235:11235"
 
