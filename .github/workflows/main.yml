@@ -38,6 +38,8 @@ jobs:
                   script: |
                       set -e
                       cd /home/${{ secrets.SSH_USERNAME }}/app
+                      docker volume create caddy_data || true
+                      docker volume create n8n_data || true
                       docker compose pull || true
                       docker compose up -d --remove-orphans
                       docker image prune -f
