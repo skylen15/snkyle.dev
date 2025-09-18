@@ -10,7 +10,7 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - name: Checkout repository
+            - name: Checkout repository (for action context, optional)
               uses: actions/checkout@v4
 
             - name: Setup SSH key
@@ -18,17 +18,7 @@ jobs:
               with:
                   ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-            - name: Copy full repository to remote server
-              uses: appleboy/scp-action@v1
-              with:
-                  host: ${{ secrets.SSH_HOST }}
-                  username: ${{ secrets.SSH_USERNAME }}
-                  port: ${{ secrets.SSH_PORT || '22' }}
-                  key: ${{ secrets.SSH_PRIVATE_KEY }}
-                  source: "./"
-                  target: /home/${{ secrets.SSH_USERNAME }}/app
-
-            - name: SSH and deploy
+            - name: SSH and deploy with git
               uses: appleboy/ssh-action@v0.1.5
               with:
                   host: ${{ secrets.SSH_HOST }}
@@ -37,7 +27,17 @@ jobs:
                   key: ${{ secrets.SSH_PRIVATE_KEY }}
                   script: |
                       set -e
-                      cd /home/${{ secrets.SSH_USERNAME }}/app
+                      APP_DIR="/home/${{ secrets.SSH_USERNAME }}/app"
+
+                      # clone repo nếu chưa có
+                      if [ ! -d "$APP_DIR/.git" ]; then
+                        git clone --branch main ${{ secrets.REPO_URL }} "$APP_DIR"
+                      fi
+
+                      cd "$APP_DIR"
+                      git fetch origin main
+                      git reset --hard origin/main
+
                       docker volume create caddy_data || true
                       docker volume create n8n_data || true
                       docker compose pull || true
