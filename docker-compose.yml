@@ -24,6 +24,11 @@ services:
             - NODE_ENV=production
             - WEBHOOK_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}/
             - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
+        deploy:
+            resources:
+                limits:
+                    cpus: "1"
+                    memory: 1g
         volumes:
             - n8n_data:/home/node/.n8n
             - ${DATA_FOLDER}/local_files:/files
@@ -45,8 +50,10 @@ services:
         deploy:
             resources:
                 limits:
-                    memory: 8g
-                    cpus: "4"
+                    memory: 5g
+                    cpus: "2"
+                reservations:
+                    memory: 4g
     open-webui:
         image: ghcr.io/open-webui/open-webui:main
         container_name: open-webui

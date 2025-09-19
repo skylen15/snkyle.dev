@@ -1,0 +1,101 @@
+version: "3.8"
+
+networks:
+  app_net:
+
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [app_net]
+    # caddy rất nhẹ, không cần limit quá chặt
+    logging:
+      driver: "json-file"
+      options: { max-size: "10m", max-file: "3" }
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    networks: [app_net]
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      OLLAMA_NUM_THREADS: "4"
+      # số phiên song song; hạ thấp nếu RAM yếu
+      OLLAMA_NUM_PARALLEL: "1"
+    deploy:
+      resources:
+        limits:
+          cpus: "3.5"
+          memory: 5g
+        reservations:
+          memory: 3g
+    logging:
+      driver: "json-file"
+      options: { max-size: "10m", max-file: "3" }
+
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    restart: unless-stopped
+    networks: [app_net]
+    environment:
+      OLLAMA_BASE_URL: "http://ollama:11434"
+      PORT: "8080"
+    depends_on: [ollama]
+    deploy:
+      resources:
+        limits:
+          cpus: "0.6"
+          memory: 512m
+    logging:
+      driver: "json-file"
+      options: { max-size: "10m", max-file: "3" }
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    restart: unless-stopped
+    networks: [app_net]
+    environment:
+      GENERIC_TIMEZONE: "Asia/Ho_Chi_Minh"
+      TZ: "Asia/Ho_Chi_Minh"
+      # Nếu webhook URL hiển thị sai port, đặt các biến base URL phù hợp:
+      # N8N_HOST=flow.example.com
+      # N8N_PROTOCOL=https
+      # WEBHOOK_URL=https://flow.example.com/
+    volumes:
+      - n8n_data:/home/node/.n8n
+    deploy:
+      resources:
+        limits:
+          cpus: "0.6"
+          memory: 768m
+    logging:
+      driver: "json-file"
+      options: { max-size: "10m", max-file: "3" }
+
+  crawl4ai:
+    image: yourrepo/crawl4ai:latest
+    restart: unless-stopped
+    networks: [app_net]
+    # headless => CPU/RAM spikes, nên limit
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1.5g
+    logging:
+      driver: "json-file"
+      options: { max-size: "10m", max-file: "3" }
+
+volumes:
+  caddy_data:
+  caddy_config:
+  ollama_data:
+  n8n_data:
