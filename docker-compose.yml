@@ -114,6 +114,7 @@ volumes:
         external: true
     n8n_data:
         external: true
+    postgres_data:
+        external: true
     ollama:
     open-webui:
-    postgres_data:
