@@ -4,7 +4,8 @@ A comprehensive Docker-based setup featuring n8n workflow automation, Ollama LLM
 
 ## Services Included
 
--   **n8n** - Workflow automation platform
+-   **n8n** - Workflow automation platform with PostgreSQL database
+-   **PostgreSQL with pgvector** - Database for n8n with vector extension support
 -   **Ollama** - Local LLM server for running language models
 -   **Open WebUI** - Chat interface for Ollama models
 -   **Crawl4AI** - Web scraping and crawling service
@@ -57,6 +58,13 @@ SSL_EMAIL=your-email@example.com
 
 # Secret key for Open WebUI
 WEBUI_SECRET_KEY=your-secret-key-here
+
+# PostgreSQL Database Configuration
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your-secure-postgres-password
+POSTGRES_DB=n8n
+POSTGRES_NON_ROOT_USER=n8n_user
+POSTGRES_NON_ROOT_PASSWORD=your-secure-n8n-password
 ```
 
 ### 3. SSH Key Setup for GitHub Actions
@@ -184,9 +192,21 @@ n8n is configured with:
 
 -   Production environment
 -   HTTPS protocol
+-   PostgreSQL database backend with pgvector support
 -   Webhook support
 -   File access through `/files` directory
 -   Resource limits: 1 CPU, 1GB RAM
+-   Health check dependency on PostgreSQL
+
+### PostgreSQL Configuration
+
+PostgreSQL is configured with:
+
+-   pgvector extension for vector operations
+-   Dedicated database and user for n8n
+-   Health checks for service dependencies
+-   Persistent data storage in Docker volume
+-   Automatic user and permissions setup via init script
 
 ### Ollama Configuration
 
@@ -255,7 +275,11 @@ docker-compose up -d
 ```bash
 # Backup Docker volumes
 docker run --rm -v n8n_data:/data -v $(pwd):/backup ubuntu tar czf /backup/n8n_backup.tar.gz /data
+docker run --rm -v postgres_data:/data -v $(pwd):/backup ubuntu tar czf /backup/postgres_backup.tar.gz /data
 docker run --rm -v ollama:/data -v $(pwd):/backup ubuntu tar czf /backup/ollama_backup.tar.gz /data
+
+# Alternative: PostgreSQL database dump
+docker-compose exec postgres pg_dump -U postgres n8n > n8n_database_backup.sql
 ```
 
 ## Troubleshooting
@@ -266,6 +290,8 @@ docker run --rm -v ollama:/data -v $(pwd):/backup ubuntu tar czf /backup/ollama_
 2. **SSL certificate issues**: Verify email configuration and domain ownership
 3. **Ollama models not loading**: Ensure sufficient RAM and disk space
 4. **n8n workflows failing**: Check file permissions in `local_files` directory
+5. **n8n database connection issues**: Verify PostgreSQL credentials and container health
+6. **PostgreSQL startup issues**: Check logs and ensure sufficient disk space
 
 ### Health Checks
 
@@ -278,12 +304,20 @@ docker stats
 
 # Test connectivity
 curl -I https://n8n.yourdomain.com
+
+# Check PostgreSQL connectivity
+docker-compose exec postgres pg_isready -U postgres -d n8n
+
+# View specific service logs
+docker-compose logs postgres
+docker-compose logs n8n
 ```
 
 ## Security Considerations
 
 -   All services run behind Caddy with automatic HTTPS
 -   Ollama runs with security hardening
+-   PostgreSQL database with dedicated user credentials
 -   Regular updates are recommended
 -   Monitor resource usage
 -   Backup data regularly
@@ -293,13 +327,13 @@ curl -I https://n8n.yourdomain.com
 ### Minimum Requirements
 
 -   **CPU**: 2 cores
--   **RAM**: 8GB
+-   **RAM**: 10GB (increased for PostgreSQL database)
 -   **Storage**: 50GB free space
 
 ### Recommended Requirements
 
 -   **CPU**: 4+ cores
--   **RAM**: 16GB+
+-   **RAM**: 16GB+ (PostgreSQL and Ollama can be memory intensive)
 -   **Storage**: 100GB+ SSD
 
 ## Support
