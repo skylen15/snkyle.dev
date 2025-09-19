@@ -11,16 +11,15 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
-            - name: Sync files to remote server
-              uses: appleboy/rsync-action@v1
+            - name: Sync files to remote server via rsync
+              uses: burnett01/rsync-deployments@7.1.0
               with:
-                  host: ${{ secrets.SSH_HOST }}
-                  username: ${{ secrets.SSH_USERNAME }}
-                  port: ${{ secrets.SSH_PORT || '22' }}
-                  key: ${{ secrets.SSH_PRIVATE_KEY }}
-                  source: "./"
-                  target: /home/${{ secrets.SSH_USERNAME }}/app
-                  delete: false
+                  switches: -avzr --delete --exclude=".env"
+                  path: "./"
+                  remote_path: "/home/${{ secrets.SSH_USERNAME }}/app"
+                  remote_host: ${{ secrets.SSH_HOST }}
+                  remote_user: ${{ secrets.SSH_USERNAME }}
+                  remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
 
             - name: SSH and deploy
               uses: appleboy/ssh-action@v0.1.5
