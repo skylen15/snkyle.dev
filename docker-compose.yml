@@ -11,6 +11,28 @@ services:
             - ${DATA_FOLDER}/caddy_config:/config
             - ${DATA_FOLDER}/caddy_config/Caddyfile:/etc/caddy/Caddyfile
 
+    postgres:
+        image: pgvector/pgvector:pg17-trixie
+        restart: always
+        environment:
+            - POSTGRES_USER
+            - POSTGRES_PASSWORD
+            - POSTGRES_DB
+            - POSTGRES_NON_ROOT_USER
+            - POSTGRES_NON_ROOT_PASSWORD
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+            - ./init-data.sh:/docker-entrypoint-initdb.d/init-data.sh
+        healthcheck:
+            test:
+                [
+                    "CMD-SHELL",
+                    "pg_isready -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB}",
+                ]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+
     n8n:
         image: docker.n8n.io/n8nio/n8n
         container_name: n8n
@@ -24,6 +46,12 @@ services:
             - NODE_ENV=production
             - WEBHOOK_URL=https://${SUBDOMAIN}.${DOMAIN_NAME}/
             - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
+            - DB_TYPE=postgresdb
+            - DB_POSTGRESDB_HOST=postgres
+            - DB_POSTGRESDB_PORT=5432
+            - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
+            - DB_POSTGRESDB_USER=${POSTGRES_NON_ROOT_USER}
+            - DB_POSTGRESDB_PASSWORD=${POSTGRES_NON_ROOT_PASSWORD}
         deploy:
             resources:
                 limits:
@@ -32,6 +60,11 @@ services:
         volumes:
             - n8n_data:/home/node/.n8n
             - ${DATA_FOLDER}/local_files:/files
+        links:
+            - postgres
+        depends_on:
+            postgres:
+                condition: service_healthy
 
     ollama:
         image: ollama/ollama:latest
@@ -83,3 +116,4 @@ volumes:
         external: true
     ollama:
     open-webui:
+    postgres_data:
